@@ -4,6 +4,9 @@ A quiet weather player for the browser.
 
 Moodscape turns a blank browser tab into a small place to slow down. Choose rain, snow, or sun, then let the matching sound and atmosphere run in the background.
 
+![Uploading Screenshot 2026-09-05 220054.png…]()
+
+
 ## What it does
 
 - Rain on glass rendered with `raindrop-fx`
