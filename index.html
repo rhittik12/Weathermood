@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rain on Glass — raindrop-fx demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/SardineFish/raindrop-fx/bundle/index.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  #root {
+    position: absolute;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #status {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    color: #ddd;
+    text-align: center;
+    padding: 2rem;
+    font-size: 14px;
+    line-height: 1.5;
+    background: #0a0e0c;
+  }
+
+  #status code {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ---------- Centered player stage ---------- */
+  #centerStage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    color: #fff;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  .play-wrap {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-halo {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0) 76%);
+    pointer-events: none;
+  }
+
+  #playBtn {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.92);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  #playBtn:hover { background: rgba(255,255,255,0.08); }
+  #playBtn:active { transform: scale(0.97); }
+
+  .icon-play {
+    width: 0;
+    height: 0;
+    border-top: 18px solid transparent;
+    border-bottom: 18px solid transparent;
+    border-left: 28px solid #fff;
+    margin-left: 6px;
+  }
+
+  .icon-pause {
+    display: flex;
+    gap: 9px;
+  }
+
+  .icon-pause span {
+    width: 9px;
+    height: 34px;
+    background: #fff;
+    border-radius: 2px;
+    display: block;
+  }
+
+  #volumeRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #volume {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 220px;
+    height: 2px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  #volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  #volume::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+  }
+
+  #volume::-moz-range-track {
+    background: rgba(255,255,255,0.55);
+    height: 2px;
+    border-radius: 2px;
+  }
+
+  #chooseAudio {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  #chooseAudio:hover { color: #fff; }
+
+  #title {
+    font-family: "Marcellus", Georgia, serif;
+    font-size: clamp(38px, 7vw, 68px);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    margin: 4px 0 0;
+    text-shadow: 0px 0px 15px rgba(0,0,0,0.35);
+  }
+
+  #subtitle {
+    font-family: "Marcellus", Georgia, serif;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-top: -6px;
+  }
+
+  #trackName {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-top: -14px;
+  }
+
+  /* ---------- Tucked-away rain settings ---------- */
+  #settingsToggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(10, 14, 12, 0.5);
+    color: #e8ece9;
+    font-size: 16px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+
+  #settingsToggle:hover { background: rgba(10, 14, 12, 0.75); }
+
+  #settingsPanel {
+    position: absolute;
+    top: 66px;
+    right: 20px;
+    display: none;
+    padding: 14px 16px;
+    background: rgba(10, 14, 12, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 10px;
+    color: #e8ece9;
+    font-size: 13px;
+    width: 210px;
+  }
+
+  #settingsPanel.open { display: block; }
+
+  #settingsPanel label {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    opacity: 0.85;
+  }
+
+  #settingsPanel input[type="range"] {
+    width: 110px;
+    height: auto;
+  }
+
+  /* ---------- Weather tabs ---------- */
+  #weatherTabs {
+    position: absolute;
+    top: 20px;
+    right: 66px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .weatherTab {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(10, 14, 12, 0.5);
+    color: #e8ece9;
+    font-size: 15px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    opacity: 0.6;
+    transition: opacity 0.15s ease, background 0.15s ease;
+  }
+
+  .weatherTab:hover { opacity: 0.9; }
+
+  .weatherTab.active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  /* ---------- Background layers used by snow/sunny (rain draws its own bg) ---------- */
+  #bgImage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  #snowCanvas,
+  #sunCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    pointer-events: none;
+  }
+
+  #sunTint {
+    position: absolute;
+    inset: 0;
+    display: none;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <img id="bgImage" alt="">
+  <canvas id="canvas"></canvas>
+  <canvas id="snowCanvas"></canvas>
+  <div id="sunTint"></div>
+  <canvas id="sunCanvas"></canvas>
+</div>
+
+<div id="status"></div>
+
+<div id="centerStage">
+  <div class="play-wrap">
+    <div class="play-halo"></div>
+    <button id="playBtn" title="Play / pause">
+      <span id="playIcon" class="icon-play"></span>
+    </button>
+  </div>
+
+  <div id="volumeRow">
+    <input id="volume" type="range" min="0" max="100" value="55">
+    <button id="chooseAudio" title="Choose your own audio file">&#127925;</button>
+  </div>
+
+  <!-- Rename these two lines to make it yours -->
+  <h1 id="title">Quiet Rain</h1>
+  <div id="subtitle">a calmer corner of the internet</div>
+  <div id="trackName" hidden></div>
+
+</div>
+
+<div id="weatherTabs">
+  <button class="weatherTab active" data-weather="rain" title="Rain">&#127783;&#65039;</button>
+  <button class="weatherTab" data-weather="snow" title="Snow">&#10052;&#65039;</button>
+  <button class="weatherTab" data-weather="sunny" title="Sunny">&#9728;&#65039;</button>
+</div>
+<button id="settingsToggle" title="Weather settings">&#9881;</button>
+<div id="settingsPanel">
+  <div class="settings-group" data-weather="rain">
+    <label>drops/sec <input id="rate" type="range" min="0" max="2000" value="600"></label>
+    <label>droplet size <input id="size" type="range" min="20" max="150" value="80"></label>
+    <label>mist <input id="mist" type="checkbox" checked></label>
+  </div>
+  <div class="settings-group" data-weather="snow" style="display:none">
+    <label>flakes <input id="snowCount" type="range" min="20" max="400" value="150"></label>
+    <label>flake size <input id="snowSize" type="range" min="1" max="6" value="3"></label>
+    <label>wind <input id="snowWind" type="range" min="-3" max="3" step="0.1" value="0"></label>
+  </div>
+  <div class="settings-group" data-weather="sunny" style="display:none">
+    <label>warmth <input id="sunWarmth" type="range" min="0" max="100" value="55"></label>
+    <label>rays <input id="sunRays" type="checkbox" checked></label>
+  </div>
+</div>
+
+<audio id="rainAudio" loop preload="none" src="audio/rain.mp3"></audio>
+<audio id="weatherAudioLayer2" loop preload="none"></audio>
+<input type="file" id="audioFile" accept="audio/*" style="display:none">
+
+<script>
+  const canvas = document.querySelector("#canvas");
+  const statusEl = document.querySelector("#status");
+  const rateSlider = document.querySelector("#rate");
+
+  function showStatus(html) {
+    statusEl.innerHTML = html;
+    statusEl.style.display = "flex";
+  }
+
+  // Baked-in placeholder background (no network request, so no CORS surprises).
+  const BACKGROUND_IMAGE = "data:image/jpeg;base64,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EoCKlUSorKAgKJWatSgiVWaAzVqUGUqpQZSqzQSpVZqoM1UqCVmqlBmotSqIlVASpVqAlSrUogioKqKgAAAAgAAAAAAAAAAAAAAigIKgoAAAAAAAAAIAAAAAAAAAAACgCAAAACCooACPWrKorSsrAaaZWA01GYsBqNSsNQGo1KxGoK1GoxGog0sZUGyJFBqKzGoCrGVBqLqQBqKzFBqLKyoNKysBrV1lYCtSswBuUZagNSrKwsBtZWVRWpV1mLAala1hYDerrMqg1rWsRQb1ZWJWoDerKwsoN6srOgOmrrEq6DerKxq6DerrC6DerrGmg3q6xq6DWrrGmg3prOmg1prOmg1qampoNampqaDWpqamgupqamgtqWpqaC6lqaloFqaagFqalqAWpaWs2gtrNVmgampQBm0QCppagFqWiUDUtKyqLU0qUC1KgAmiAM1azQLU0QBBFBFSglSlQBFZoJahUoFqaVALWbSoBazaVKCWpSoolReMiFZq1kC1mrWQKzVqAIVKBqCVQQQBUVBAAAqKKIAogCiAKIAogCiAKIAogCiAKIAKggAAAAAAAAACAAoIAogCiAKIAogCiAKIAqAAAD1RWVQa1WdUVqLEi6DUWMxqUGosZjQNKzGoDUWMxqA0rOrAbis6uoNRYzFlUaVNEGorMrUoKsZUGorOroLGoyuitCaoiqysorUWMqDSsroNRYzFBpYyoNRWWkGpVYalUaixmKg0srMqg3KrDWg1KsrKg0srOqDUqsroNaus6aDems6ug1q6xq6K1prJojems6aDWms6aC6azpoNampqaDWpqamgupqGgupqagFqCWgalogCFqAmoJaBUtEAQtZUCiVBLUBREolAQASpSoAlNQAEtESsragolNTVQqCAItSglQpoIzb+KlBEqs0VKlWpRErK1KCVlalUZqVUoJUvis2iJUq1mipUq1KIyACIrICVUUSgAAIIAoIAAAAAAqACoAAAAAAAKgAAAAAAAAACAKAgAAaAAAgoCCgIAAAAAABooGgAAAAj0KioqrEgDasxQajTEagNRpiNQVqNRmNQFjUZWA1GoysBpYixBYqRQaisxQVplQVUiwFixlQaiooEaZUGhFBVZjQNQRRVisqI3KrKyiq1KyQG1jMqg1FjKyg0srOqDWqzq6DUqysqg1q6zq6DWrrJoN6azq6DWrrGroNa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";
+
+  document.querySelector("#bgImage").src = BACKGROUND_IMAGE;
+
+  // ---------- Visual rain (raindrop-fx) ----------
+  if (typeof WebGL2RenderingContext === "undefined") {
+    showStatus("Your browser doesn't support WebGL2, so this effect can't render here.<br>Try a recent Chrome, Edge, or Firefox.");
+  } else if (!window.RaindropFX) {
+    showStatus("The raindrop-fx script didn't load (probably a blocked network request to the CDN).<br>Check the browser console, or download <code>bundle/index.js</code> from the GitHub repo and reference it locally instead.");
+  } else {
+    try {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      const raindropFx = new RaindropFX({
+        canvas: canvas,
+        background: BACKGROUND_IMAGE,
+        dropletsPerSecond: 600,
+        spawnSize: [30, 80],
+      });
+
+      Promise.resolve(raindropFx.start()).catch((err) => {
+        console.error("raindrop-fx failed to start:", err);
+        showStatus("raindrop-fx threw an error on start — check the console for details.");
+      });
+
+      window.onresize = () => {
+        const rect = canvas.getBoundingClientRect();
+        raindropFx.resize(rect.width, rect.height);
+      };
+
+      rateSlider.addEventListener("input", (e) => {
+        raindropFx.options.dropletsPerSecond = Number(e.target.value);
+      });
+
+      document.querySelector("#size").addEventListener("input", (e) => {
+        const max = Number(e.target.value);
+        raindropFx.options.spawnSize = [Math.max(10, max - 40), max];
+      });
+
+      document.querySelector("#mist").addEventListener("change", (e) => {
+        raindropFx.options.mist = e.target.checked;
+      });
+    } catch (err) {
+      console.error(err);
+      showStatus("Something threw while setting up raindrop-fx — check the browser console for the error.");
+    }
+  }
+
+  // ---------- Snow (own lightweight canvas particle sim, no external lib) ----------
+  function createSnow(snowCanvasEl) {
+    const ctx = snowCanvasEl.getContext("2d");
+    let flakes = [];
+    let running = false;
+    let raf = null;
+    let config = { count: 150, size: 3, wind: 0 };
+
+    function resize() {
+      const rect = snowCanvasEl.getBoundingClientRect();
+      snowCanvasEl.width = rect.width;
+      snowCanvasEl.height = rect.height;
+    }
+
+    function seed() {
+      flakes = Array.from({ length: config.count }, () => ({
+        x: Math.random() * snowCanvasEl.width,
+        y: Math.random() * snowCanvasEl.height,
+        r: Math.random() * config.size + 1,
+        speedY: Math.random() * 1 + 0.5,
+        drift: Math.random() * 0.6 - 0.3,
+        opacity: Math.random() * 0.5 + 0.4,
+      }));
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, snowCanvasEl.width, snowCanvasEl.height);
+      ctx.fillStyle = "#fff";
+      for (const f of flakes) {
+        ctx.globalAlpha = f.opacity;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
+        f.y += f.speedY;
+        f.x += f.drift + config.wind * 0.3;
+        if (f.y > snowCanvasEl.height + 5) {
+          f.y = -5;
+          f.x = Math.random() * snowCanvasEl.width;
+        }
+        if (f.x > snowCanvasEl.width + 5) f.x = -5;
+        if (f.x < -5) f.x = snowCanvasEl.width + 5;
+      }
+      ctx.globalAlpha = 1;
+      if (running) raf = requestAnimationFrame(tick);
+    }
+
+    return {
+      start() {
+        resize();
+        seed();
+        running = true;
+        tick();
+      },
+      stop() {
+        running = false;
+        if (raf) cancelAnimationFrame(raf);
+        ctx.clearRect(0, 0, snowCanvasEl.width, snowCanvasEl.height);
+      },
+      resize() {
+        if (running) resize();
+      },
+      updateConfig(next) {
+        const countChanged = "count" in next && next.count !== config.count;
+        config = { ...config, ...next };
+        if (countChanged) seed();
+      },
+    };
+  }
+
+  const snowFx = createSnow(document.querySelector("#snowCanvas"));
+
+  document.querySelector("#snowCount").addEventListener("input", (e) => {
+    snowFx.updateConfig({ count: Number(e.target.value) });
+  });
+  document.querySelector("#snowSize").addEventListener("input", (e) => {
+    snowFx.updateConfig({ size: Number(e.target.value) });
+  });
+  document.querySelector("#snowWind").addEventListener("input", (e) => {
+    snowFx.updateConfig({ wind: Number(e.target.value) });
+  });
+
+  // ---------- Sunny (warm color tint + slow rotating rays + drifting dust motes) ----------
+  function createSunny(sunCanvasEl, tintEl) {
+    const ctx = sunCanvasEl.getContext("2d");
+    let motes = [];
+    let running = false;
+    let raf = null;
+    let t = 0;
+    let config = { warmth: 55, rays: true };
+
+    function resize() {
+      const rect = sunCanvasEl.getBoundingClientRect();
+      sunCanvasEl.width = rect.width;
+      sunCanvasEl.height = rect.height;
+    }
+
+    function seed() {
+      motes = Array.from({ length: 40 }, () => ({
+        x: Math.random() * sunCanvasEl.width,
+        y: Math.random() * sunCanvasEl.height,
+        r: Math.random() * 1.6 + 0.6,
+        speed: Math.random() * 0.3 + 0.1,
+        drift: Math.random() * 0.4 - 0.2,
+        opacity: Math.random() * 0.4 + 0.2,
+      }));
+    }
+
+    function applyTint() {
+      const alpha = (config.warmth / 100) * 0.35;
+      tintEl.style.background =
+        `linear-gradient(200deg, rgba(255,190,110,${alpha}) 0%, rgba(255,150,60,${alpha * 0.6}) 45%, rgba(0,0,0,0) 80%)`;
+    }
+
+    function tick() {
+      ctx.clearRect(0, 0, sunCanvasEl.width, sunCanvasEl.height);
+      t += 0.003;
+
+      if (config.rays) {
+        ctx.save();
+        ctx.translate(sunCanvasEl.width * 0.78, sunCanvasEl.height * 0.18);
+        ctx.rotate(t);
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          const grad = ctx.createLinearGradient(0, 0, Math.cos(a) * sunCanvasEl.width, Math.sin(a) * sunCanvasEl.width);
+          grad.addColorStop(0, "rgba(255,225,170,0.14)");
+          grad.addColorStop(1, "rgba(255,225,170,0)");
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 60;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * sunCanvasEl.width, Math.sin(a) * sunCanvasEl.width);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      ctx.fillStyle = "#fff6e0";
+      for (const m of motes) {
+        ctx.globalAlpha = m.opacity;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.fill();
+        m.y -= m.speed;
+        m.x += m.drift;
+        if (m.y < -5) {
+          m.y = sunCanvasEl.height + 5;
+          m.x = Math.random() * sunCanvasEl.width;
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      if (running) raf = requestAnimationFrame(tick);
+    }
+
+    return {
+      start() {
+        resize();
+        seed();
+        applyTint();
+        running = true;
+        tick();
+      },
+      stop() {
+        running = false;
+        if (raf) cancelAnimationFrame(raf);
+        ctx.clearRect(0, 0, sunCanvasEl.width, sunCanvasEl.height);
+      },
+      resize() {
+        if (running) resize();
+      },
+      updateConfig(next) {
+        config = { ...config, ...next };
+        applyTint();
+      },
+    };
+  }
+
+  const sunFx = createSunny(document.querySelector("#sunCanvas"), document.querySelector("#sunTint"));
+
+  document.querySelector("#sunWarmth").addEventListener("input", (e) => {
+    sunFx.updateConfig({ warmth: Number(e.target.value) });
+  });
+  document.querySelector("#sunRays").addEventListener("change", (e) => {
+    sunFx.updateConfig({ rays: e.target.checked });
+  });
+
+  // ---------- Weather switcher ----------
+  const weatherTabButtons = document.querySelectorAll(".weatherTab");
+  const settingsGroups = document.querySelectorAll(".settings-group");
+  const bgImageEl = document.querySelector("#bgImage");
+  const snowCanvasEl = document.querySelector("#snowCanvas");
+  const sunCanvasEl = document.querySelector("#sunCanvas");
+  const sunTintEl = document.querySelector("#sunTint");
+  const titleEl = document.querySelector("#title");
+  const subtitleEl = document.querySelector("#subtitle");
+
+  // Edit these three to change what shows on screen for each weather.
+  const weatherText = {
+    rain: { title: "Quiet Rain", subtitle: "a calmer corner of the internet" },
+    snow: { title: "Quiet Snow", subtitle: "a hush over everything" },
+    sunny: { title: "Quiet Sun", subtitle: "a warm afternoon lull" },
+  };
+
+  let currentWeather = "rain";
+
+  function setWeather(weather) {
+    currentWeather = weather;
+    weatherTabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.weather === weather));
+    settingsGroups.forEach((g) => { g.style.display = g.dataset.weather === weather ? "" : "none"; });
+
+    canvas.style.display = weather === "rain" ? "block" : "none";
+    bgImageEl.style.display = weather === "rain" ? "none" : "block";
+    snowCanvasEl.style.display = weather === "snow" ? "block" : "none";
+    sunTintEl.style.display = weather === "sunny" ? "block" : "none";
+    sunCanvasEl.style.display = weather === "sunny" ? "block" : "none";
+
+    titleEl.textContent = weatherText[weather].title;
+    subtitleEl.textContent = weatherText[weather].subtitle;
+
+    if (weather === "snow") snowFx.start(); else snowFx.stop();
+    if (weather === "sunny") sunFx.start(); else sunFx.stop();
+
+    switchAudioForWeather(weather);
+  }
+
+  weatherTabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => setWeather(btn.dataset.weather));
+  });
+
+  window.addEventListener("resize", () => {
+    snowFx.resize();
+    sunFx.resize();
+  });
+
+  // ---------- Settings popover ----------
+  const settingsToggle = document.querySelector("#settingsToggle");
+  const settingsPanel = document.querySelector("#settingsPanel");
+  settingsToggle.addEventListener("click", () => {
+    settingsPanel.classList.toggle("open");
+  });
+
+  // ---------- Audio: your own file, either baked in or picked live ----------
+  const audioEl = document.querySelector("#rainAudio");        // layer 1
+  const audioEl2 = document.querySelector("#weatherAudioLayer2"); // layer 2 (optional per weather)
+  const audioEls = [audioEl, audioEl2];
+  const playBtn = document.querySelector("#playBtn");
+  const playIcon = document.querySelector("#playIcon");
+  const volumeSlider = document.querySelector("#volume");
+  const trackName = document.querySelector("#trackName");
+  const chooseAudioBtn = document.querySelector("#chooseAudio");
+  const fileInput = document.querySelector("#audioFile");
+
+  audioEls.forEach((el) => { el.volume = volumeSlider.value / 100; });
+
+  // Default tracks per weather. Each weather gets an ARRAY of one or two layers
+  // that play together (e.g. snow = a wind bed + a snowfall/foley texture).
+  // Drop matching files in audio/ and they'll be picked up automatically; a
+  // missing file just shows "not found" for that weather instead of breaking.
+  const audioSources = {
+    rain: [
+      { src: "audio/rain.mp3", name: "audio/rain.mp3", isDefault: true },
+    ],
+    snow: [
+      { src: "audio/snow.mp3", name: "audio/snow.mp3", isDefault: true },
+    ],
+    sunny: [
+      { src: "audio/sunny.mp3", name: "audio/sunny.mp3", isDefault: true },
+    ],
+  };
+
+  let isPlaying = false;
+
+  function switchAudioForWeather(weather) {
+    const wasPlaying = isPlaying;
+    const tracks = audioSources[weather];
+
+    audioEls.forEach((el, i) => {
+      const track = tracks[i];
+      if (track) {
+        el.dataset.active = "true";
+        el.src = track.src;
+        el.load();
+      } else {
+        el.dataset.active = "false";
+        el.pause();
+        el.removeAttribute("src");
+      }
+    });
+
+    trackName.textContent = tracks.map((t) => t.name).join("  +  ");
+
+    if (wasPlaying) {
+      audioEls.forEach((el) => {
+        if (el.dataset.active === "true") el.play().catch((err) => console.error("Playback failed:", err));
+      });
+    }
+  }
+
+  function setPlayingIcon(isPlaying) {
+    if (isPlaying) {
+      playIcon.className = "icon-pause";
+      playIcon.innerHTML = "<span></span><span></span>";
+    } else {
+      playIcon.className = "icon-play";
+      playIcon.innerHTML = "";
+    }
+  }
+
+  audioEls.forEach((el) => {
+    el.addEventListener("error", () => {
+      if (el.dataset.active !== "true") return;
+      const tracks = audioSources[currentWeather];
+      if (tracks.some((t) => t.isDefault)) {
+        trackName.textContent = `no default track found for ${currentWeather} — pick one below`;
+      }
+    });
+  });
+
+  // Track playback state ourselves so swapping audio sources between weather modes
+  // cannot desynchronize the play/pause icon from the user's actual toggle state.
+  setPlayingIcon(false);
+
+  playBtn.addEventListener("click", async () => {
+    const activeEls = audioEls.filter((el) => el.dataset.active === "true");
+    if (!activeEls.length) return;
+
+    if (isPlaying) {
+      activeEls.forEach((el) => el.pause());
+      isPlaying = false;
+      setPlayingIcon(false);
+      return;
+    }
+
+    try {
+      await Promise.all(activeEls.map((el) => el.play()));
+      isPlaying = true;
+      setPlayingIcon(true);
+    } catch (err) {
+      isPlaying = false;
+      setPlayingIcon(false);
+      console.error("Playback failed:", err);
+    }
+  });
+
+  volumeSlider.addEventListener("input", (e) => {
+    const v = e.target.value / 100;
+    audioEls.forEach((el) => { el.volume = v; });
+  });
+
+  chooseAudioBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    // A manual pick replaces this weather's layers with just the one file you chose.
+    audioSources[currentWeather] = [{ src: url, name: file.name, isDefault: false }];
+    switchAudioForWeather(currentWeather);
+    audioEls.forEach((el) => {
+      if (el.dataset.active === "true") el.play().catch((err) => console.error("Playback failed:", err));
+    });
+  });
+
+  // Establish layer state for the starting weather (rain) right away, so the
+  // play button and volume slider work before the user ever taps a weather tab.
+  switchAudioForWeather(currentWeather);
+</script>
+
+</body>
+</html>
