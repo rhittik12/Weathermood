@@ -31,12 +31,11 @@ You can also use the Live Server extension in VS Code.
 
 ## Deploy to Vercel
 
-1. Rename `weather.html` to `index.html`.
-2. Push `index.html` and the `audio` folder to GitHub.
-3. Import the repository into Vercel.
-4. Leave the framework preset as **Other**.
-5. Leave the build command empty.
-6. Deploy.
+1. Push `index.html` and the `audio` folder to GitHub.
+2. Import the repository into Vercel.
+3. Leave the framework preset as **Other**.
+4. Leave the build command empty.
+5. Deploy.
 
 The site is static, so Vercel does not need a build process or server function.
 
@@ -50,20 +49,6 @@ The site is static, so Vercel does not need a build process or server function.
     ├── snow.mp3
     └── sunny.mp3
 ```
-
-The repository currently contains `weather.html`; the layout above shows the name it should have for deployment.
-
-## Changing the page
-
-Most of the experience lives in one file, `index.html` after renaming it.
-
-- Change the visible title and subtitle near the center of the page.
-- Change the weather labels in the `weatherText` object.
-- Replace the files in `audio/` to use different sounds.
-- Adjust the default weather settings in the controls near the top of the script.
-
-The built-in background image is embedded directly in the HTML, so it does not need a separate image file.
-
 ## Notes
 
 The rain effect loads `raindrop-fx` from jsDelivr and the page loads the Marcellus font from Google Fonts. The rain mode needs WebGL2; snow and sunny mode use regular canvas animation.
